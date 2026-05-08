@@ -9,19 +9,30 @@ const supabase = createClient(
 export async function POST(req: Request) {
   const body = await req.json();
 
-  const { userId, amount, orderId } = body;
+  const { amount, orderId, message } = body;
 
-  // 1. cộng xu cho user
-  const { data, error } = await supabase
+  // tìm user theo mã nạp
+  const { data: user } = await supabase
     .from("users")
-    .update({
-      coins: amount * 10,
-    })
-    .eq("id", userId);
+    .select("*")
+    .eq("deposit_code", message)
+    .single();
 
-  // 2. lưu lịch sử giao dịch
+  if (!user) {
+    return NextResponse.json({ error: "User not found" });
+  }
+
+  // cộng xu
+  const newCoins = (user.coins || 0) + amount * 10;
+
+  await supabase
+    .from("users")
+    .update({ coins: newCoins })
+    .eq("id", user.id);
+
+  // lưu lịch sử
   await supabase.from("transactions").insert({
-    user_id: userId,
+    user_id: user.id,
     amount,
     order_id: orderId,
     status: "success",
