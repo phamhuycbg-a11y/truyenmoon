@@ -24,9 +24,11 @@ export default function Home() {
           </div>
 
           <div className="mt-6 w-full flex justify-center">
-            <div className="w-48 h-48 bg-white rounded-xl flex items-center justify-center text-black text-sm">
-              QR PAYMENT<br />
-              (thay sau)
+            <div <img
+  src={qrUrl}
+  alt="QR Momo"
+  className="w-48 h-48 rounded-xl"
+/>
             </div>
           </div>
 
