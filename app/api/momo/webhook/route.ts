@@ -11,7 +11,7 @@ export async function POST(req: Request) {
 
   const { amount, orderId, message } = body;
 
-  // tìm user theo mã nạp
+  // 1. tìm user theo mã nạp
   const { data: user } = await supabase
     .from("users")
     .select("*")
@@ -19,18 +19,34 @@ export async function POST(req: Request) {
     .single();
 
   if (!user) {
-    return NextResponse.json({ error: "User not found" });
+    return NextResponse.json({ success: false, error: "User not found" });
   }
 
-  // cộng xu
-  const newCoins = (user.coins || 0) + amount * 10;
+  // 2. tính xu cơ bản
+  let coins = amount / 200; // ví dụ: 10k = 50 xu
+
+  // 3. bonus +25% nếu muốn
+  coins = Math.floor(coins * 1.25);
+
+  // 4. bonus nạp lần đầu x100
+  if (user.is_first_deposit) {
+    coins = coins * 100;
+
+    await supabase
+      .from("users")
+      .update({ is_first_deposit: false })
+      .eq("id", user.id);
+  }
+
+  // 5. cộng xu
+  const newCoins = (user.coins || 0) + coins;
 
   await supabase
     .from("users")
     .update({ coins: newCoins })
     .eq("id", user.id);
 
-  // lưu lịch sử
+  // 6. lưu lịch sử
   await supabase.from("transactions").insert({
     user_id: user.id,
     amount,
@@ -38,5 +54,9 @@ export async function POST(req: Request) {
     status: "success",
   });
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({
+    success: true,
+    coinsAdded: coins,
+    total: newCoins
+  });
 }
